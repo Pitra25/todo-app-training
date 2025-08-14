@@ -1,4 +1,4 @@
-package repository
+package mysql
 
 import (
 	"fmt"
@@ -8,14 +8,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-const ( // table DB
-	usersTable      = "users"
-	todoListsTable  = "todo_lists"
-	usersListsTable = "users_lists"
-	TodoItemssTable = "todo_items"
-	listsItemsTable = "lists_items"
-)
-
+// ConfigMySql holds the configuration for MySQL connection
 type ConfigMySql struct {
 	Host      string
 	Port      string
@@ -26,7 +19,9 @@ type ConfigMySql struct {
 	ParseTime string
 }
 
-func NewMySqlDB(cfg ConfigMySql) (*sqlx.DB, error) {
+// NewMySqlDB initializes a new MySQL database connection
+// It returns a pointer to sqlx.DB or an error if the connection fails.
+func NewMySqlDB(cfg *ConfigMySql) (*sqlx.DB, error) {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=%s",
 		cfg.Username, cfg.Password, cfg.Host, cfg.Port, cfg.DBName, cfg.ParseTime)
 

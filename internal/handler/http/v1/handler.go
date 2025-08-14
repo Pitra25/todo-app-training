@@ -1,7 +1,8 @@
-package handler
+package v1
 
 import (
-	"todo-app/pkg/service"
+	"todo-app/internal/handler/http"
+	"todo-app/internal/service"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -12,6 +13,7 @@ import (
 
 type Heandler struct {
 	services *service.Service
+	mw       *http.MW
 }
 
 func NewHandler(service *service.Service) *Heandler {
@@ -29,8 +31,16 @@ func (h *Heandler) InitRoutes() *gin.Engine {
 		auth.POST("/sing-in", h.singIp)
 	}
 
-	api := router.Group("/api", h.userIdentity)
+	api := router.Group("/api", http.NewMW(h.services).UserIdentity)
 	{
+		user := api.Group("users")
+		{
+			user.GET("/", h.getAllUsers)
+			user.GET("/:id", h.getUserById)
+			user.PUT("/:id", h.updateUser)
+			user.DELETE("/delete", h.deleteAccount)
+		}
+
 		list := api.Group("lists")
 		{
 			list.POST("/", h.createList)

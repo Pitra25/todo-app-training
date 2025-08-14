@@ -1,28 +1,41 @@
-package repository
+package methods
 
 import (
 	"fmt"
 	"strings"
-	"todo-app/types"
+
+	"todo-app/internal/repository/mysql/models"
+	storage "todo-app/pkg/cache/redis"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/redis/go-redis/v9"
+	"github.com/sirupsen/logrus"
 )
 
 type TodoItemsMySql struct {
-	db *sqlx.DB
+	db  *sqlx.DB
+	rdb *storage.RediseCLientDB
 }
 
-func NewTodoItemsMySql(db *sqlx.DB) *TodoItemsMySql {
-	return &TodoItemsMySql{db: db}
+func NewTodoItemsMySql(db *sqlx.DB, rdb *redis.Client) *TodoItemsMySql {
+	return &TodoItemsMySql{
+		db:  db,
+		rdb: &storage.RediseCLientDB{Db: rdb},
+	}
 }
 
-func (r *TodoItemsMySql) Create(listId int, item types.TodoItems) (int, error) {
+func (r *TodoItemsMySql) Create(listId int, item models.TodoItems) (int, error) {
+	logrus.Debug("list id:", listId, "item:", item)
+
 	tx, err := r.db.Begin()
 	if err != nil {
 		return 0, err
 	}
 
-	createItemQuery := fmt.Sprintf("INSERT INTO %s (title, description) VALUES (?, ?)", TodoItemssTable)
+	createItemQuery := fmt.Sprintf(
+		"INSERT INTO %s (title, description) VALUES (?, ?)",
+		models.TodoItemsTable,
+	)
 	row, err := tx.Exec(createItemQuery, item.Title, item.Description)
 	if err != nil {
 		tx.Rollback()
@@ -35,8 +48,11 @@ func (r *TodoItemsMySql) Create(listId int, item types.TodoItems) (int, error) {
 		return 0, err
 	}
 
-	createListItemssQuery := fmt.Sprintf("INSERT INTO %s (list_id, item_id) VALUES (?, ?)", listsItemsTable)
-	_, err = tx.Exec(createListItemssQuery, listId, itemid)
+	createListItemsQuery := fmt.Sprintf(
+		"INSERT INTO %s (list_id, item_id) VALUES (?, ?)",
+		models.ListsItemsTable,
+	)
+	_, err = tx.Exec(createListItemsQuery, listId, itemid)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -45,15 +61,15 @@ func (r *TodoItemsMySql) Create(listId int, item types.TodoItems) (int, error) {
 	return int(itemid), tx.Commit()
 }
 
-func (r *TodoItemsMySql) GetAllItemsList(userId, listId int) ([]types.TodoItems, error) {
-	var items []types.TodoItems
+func (r *TodoItemsMySql) GetAllItemsList(userId, listId int) ([]models.TodoItems, error) {
+	var items []models.TodoItems
 
 	query := fmt.Sprintf(
 		"SELECT ti.id, ti.title, ti.description, ti.done FROM %s ti "+
 			"INNER JOIN %s li ON li.item_id = ti.id "+
 			"INNER JOIN %s ul ON ul.list_id = li.list_id "+
 			"WHERE li.list_id = ? AND ul.user_id = ?",
-		TodoItemssTable, listsItemsTable, usersListsTable,
+		models.TodoItemsTable, models.ListsItemsTable, models.UsersListsTable,
 	)
 	if err := r.db.Select(&items, query, listId, userId); err != nil {
 		return nil, err
@@ -62,12 +78,12 @@ func (r *TodoItemsMySql) GetAllItemsList(userId, listId int) ([]types.TodoItems,
 	return items, nil
 }
 
-func (r *TodoItemsMySql) GetAllItem() ([]types.TodoItems, error) {
-	var items []types.TodoItems
+func (r *TodoItemsMySql) GetAllItem() ([]models.TodoItems, error) {
+	var items []models.TodoItems
 
 	query := fmt.Sprintf(
 		"SELECT id, title, description, done FROM %s",
-		TodoItemssTable,
+		models.TodoItemsTable,
 	)
 	if err := r.db.Select(&items, query); err != nil {
 		return nil, err
@@ -76,15 +92,15 @@ func (r *TodoItemsMySql) GetAllItem() ([]types.TodoItems, error) {
 	return items, nil
 }
 
-func (r *TodoItemsMySql) GetById(userId, itemId int) (types.TodoItems, error) {
-	var item types.TodoItems
+func (r *TodoItemsMySql) GetById(userId, itemId int) (models.TodoItems, error) {
+	var item models.TodoItems
 
-	storageRecords, err := Get(itemId, "list")
+	// Check Redis cache first
+	storageRecords, err := r.rdb.Get(itemId, "list")
 	if err != nil {
-		return types.TodoItems{}, err
-	}
-	if storageRecords.list.Title != "" {
-		return storageRecords.items, nil
+		logrus.Error("method: GetById item.", err.Error())
+	} else if storageRecords.Items.Title != "" && storageRecords != nil {
+		return storageRecords.Items, nil
 	}
 
 	query := fmt.Sprintf(
@@ -92,18 +108,22 @@ func (r *TodoItemsMySql) GetById(userId, itemId int) (types.TodoItems, error) {
 			"INNER JOIN %s li ON li.item_id = ti.id "+
 			"INNER JOIN %s ul ON ul.list_id = li.list_id "+
 			"WHERE ti.id = ? AND ul.user_id = ?",
-		TodoItemssTable, listsItemsTable, usersListsTable,
+		models.TodoItemsTable, models.ListsItemsTable, models.UsersListsTable,
 	)
 	if err := r.db.Get(&item, query, itemId, userId); err != nil {
 		return item, err
 	}
 
-	err = Create(RecordingStruct{
-		ID:    item.Id,
-		items: item,
-	})
+	// Save to Redis cache
+	if err := r.rdb.Create(&storage.Recording{
+		ID:    itemId,
+		Items: item,
+	}); err != nil {
+		logrus.Error("err creatr record redis.", err.Error())
+		return item, nil
+	}
 
-	return item, err
+	return item, nil
 }
 
 func (r *TodoItemsMySql) Delete(userId, itemId int) error {
@@ -112,16 +132,14 @@ func (r *TodoItemsMySql) Delete(userId, itemId int) error {
 			"INNER JOIN %s li ON ti.id = li.item_id "+
 			"INNER JOIN %s ul ON li.list_id = ul.list_id "+
 			"WHERE ul.user_id = ? AND ti.id = ?",
-		TodoItemssTable,
-		listsItemsTable,
-		usersListsTable,
+		models.TodoItemsTable, models.ListsItemsTable, models.UsersListsTable,
 	)
 	_, err := r.db.Exec(query, userId, itemId)
 
 	return err
 }
 
-func (r *TodoItemsMySql) Update(userId, itemId int, input types.UpdadeItemInput) error {
+func (r *TodoItemsMySql) Update(userId, itemId int, input models.UpdadeItemInput) error {
 	setValues := make([]string, 0)
 	args := make([]interface{}, 0)
 
@@ -148,9 +166,7 @@ func (r *TodoItemsMySql) Update(userId, itemId int, input types.UpdadeItemInput)
 			"INNER JOIN %s ul ON li.list_id = ul.list_id "+
 			"SET %s "+
 			"WHERE ul.user_id = ? AND ti.id = ?",
-		TodoItemssTable,
-		listsItemsTable,
-		usersListsTable,
+		models.TodoItemsTable, models.ListsItemsTable, models.UsersListsTable,
 		setQuery,
 	)
 	args = append(args, userId, itemId)

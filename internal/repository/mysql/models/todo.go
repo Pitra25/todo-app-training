@@ -1,6 +1,14 @@
-package types
+package models
 
 import "errors"
+
+const ( // table DB
+	UsersTable      = "users"
+	TodoListsTable  = "todo_lists"
+	UsersListsTable = "users_lists"
+	TodoItemsTable  = "todo_items"
+	ListsItemsTable = "lists_items"
+)
 
 type TodoList struct {
 	Id          int    `json:"id" db:"id"`

@@ -1,8 +1,8 @@
-package repository
+package methods
 
 import (
 	"fmt"
-	"todo-app/types"
+	"todo-app/internal/repository/mysql/models"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -15,8 +15,8 @@ func NewAuthMySql(db *sqlx.DB) *AuthMysql {
 	return &AuthMysql{db: db}
 }
 
-func (r *AuthMysql) CreateUser(user types.User) (int, error) {
-	query := fmt.Sprintf("INSERT INTO %s (name, username, password_hash) values (?, ?, ?)", usersTable)
+func (r *AuthMysql) CreateUser(user models.User) (int, error) {
+	query := fmt.Sprintf("INSERT INTO %s (name, username, password_hash) values (?, ?, ?)", models.UsersTable)
 
 	result, err := r.db.Exec(query, user.Name, user.Username, user.Password)
 	if err != nil {
@@ -31,9 +31,9 @@ func (r *AuthMysql) CreateUser(user types.User) (int, error) {
 	return int(id), nil
 }
 
-func (r *AuthMysql) GetUser(username, password string) (types.User, error) {
-	var user types.User
-	query := fmt.Sprintf("SELECT id FROM %s WHERE username=? AND password_hash=?", usersTable)
+func (r *AuthMysql) GetUser(username, password string) (models.User, error) {
+	var user models.User
+	query := fmt.Sprintf("SELECT id FROM %s WHERE username=? AND password_hash=?", models.UsersTable)
 	err := r.db.Get(&user, query, username, password)
 
 	return user, err

@@ -1,8 +1,9 @@
-package handler
+package v1
 
 import (
 	"net/http"
-	"todo-app/types"
+	errorsResponse "todo-app/internal/errors"
+	"todo-app/internal/repository/mysql/models"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,22 +14,22 @@ import (
 // @ID create-account
 // @Accept  json
 // @Produce  json
-// @Param input body types.User true "account info"
+// @Param input body models.User true "account info"
 // @Success 200 {integer} integer 1
 // @Failure 400,404 {object} errorResponse
 // @Failure 500 {object} errorResponse
 // @Failure default {object} errorResponse
 // @Router /auth/sign-up [post]
 func (h *Heandler) singUp(c *gin.Context) {
-	var input types.User
+	var input models.User
 
 	if err := c.BindJSON(&input); err != nil {
-		newErrorResponse(c, http.StatusBadRequest, err.Error())
+		errorsResponse.NewErrorResponse(c, http.StatusBadRequest, err.Error())
 	}
 
 	id, err := h.services.Authorization.CreateUser(input)
 	if err != nil {
-		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		errorsResponse.NewErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -58,12 +59,12 @@ func (h *Heandler) singIp(c *gin.Context) {
 	var input signInInput
 
 	if err := c.BindJSON(&input); err != nil {
-		newErrorResponse(c, http.StatusBadRequest, err.Error())
+		errorsResponse.NewErrorResponse(c, http.StatusBadRequest, err.Error())
 	}
 
 	token, err := h.services.Authorization.GenerateToken(input.Username, input.Password)
 	if err != nil {
-		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		errorsResponse.NewErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
