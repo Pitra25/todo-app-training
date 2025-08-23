@@ -21,9 +21,12 @@ type ConfigMySql struct {
 
 // NewMySqlDB initializes a new MySQL database connection
 // It returns a pointer to sqlx.DB or an error if the connection fails.
-func NewMySqlDB(cfg *ConfigMySql) (*sqlx.DB, error) {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=%s",
-		cfg.Username, cfg.Password, cfg.Host, cfg.Port, cfg.DBName, cfg.ParseTime)
+func New(cfg *ConfigMySql) (*sqlx.DB, error) {
+	dsn := fmt.Sprintf(
+		"%s:%s@tcp(%s:%s)/%s?parseTime=%s",
+		cfg.Username, cfg.Password, cfg.Host, 
+		cfg.Port, cfg.DBName, cfg.ParseTime,
+	)
 
 	db, err := sqlx.Open("mysql", dsn)
 	if err != nil {

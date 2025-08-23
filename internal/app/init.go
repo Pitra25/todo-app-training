@@ -1,9 +1,12 @@
 package app
 
 import (
+	"net/smtp"
 	"os"
 	"todo-app/internal/repository/mysql"
+	"todo-app/internal/repository/postgres"
 	storage "todo-app/pkg/cache/redis"
+	"todo-app/pkg/email"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
@@ -18,17 +21,40 @@ func initConfig() error {
 	return viper.ReadInConfig()
 }
 
-func bdInit() *sqlx.DB {
+func bdMysqlInit() *sqlx.DB {
 	logrus.Print("Database initialization started")
 
-	db, err := mysql.NewMySqlDB(
+	db, err := mysql.New(
 		&mysql.ConfigMySql{
-			Host:      viper.GetString("db.host"),
-			Port:      viper.GetString("db.port"),
-			Username:  viper.GetString("db.username"),
-			DBName:    viper.GetString("db.dbname"),
-			SSLMode:   viper.GetString("db.sslmode"),
-			ParseTime: viper.GetString("db.parsetime"),
+			Host:      viper.GetString("db.mysql.host"),
+			Port:      viper.GetString("db.mysql.port"),
+			Username:  viper.GetString("db.mysql.username"),
+			DBName:    viper.GetString("db.mysql.dbname"),
+			SSLMode:   viper.GetString("db.mysql.sslmode"),
+			ParseTime: viper.GetString("db.mysql.parsetime"),
+			Password:  os.Getenv("DB_PASSWORD"),
+		})
+	if err != nil {
+		logrus.Fatalln("failed to initialize db: ", err.Error())
+		return nil
+	}
+
+	logrus.Print("Database initialization completed")
+
+	return db
+}
+
+func bdPostgresInit() *sqlx.DB {
+	logrus.Print("Database initialization started")
+
+	db, err := postgres.New(
+		&postgres.ConfigPostgres{
+			Host:      viper.GetString("db.mysql.host"),
+			Port:      viper.GetString("db.mysql.port"),
+			Username:  viper.GetString("db.mysql.username"),
+			DBName:    viper.GetString("db.mysql.dbname"),
+			SSLMode:   viper.GetString("db.mysql.sslmode"),
+			ParseTime: viper.GetString("db.mysql.parsetime"),
 			Password:  os.Getenv("DB_PASSWORD"),
 		})
 	if err != nil {
@@ -61,4 +87,24 @@ func redisInit() *redis.Client {
 	logrus.Print("Redis initialization completed")
 
 	return rdb
+}
+
+func initConfigSMTP() *smtp.Client {
+	logrus.Print("SMTP configuration initialization started")
+
+	smtpCLient := email.New(email.ConfigSMTP{
+		Host:     viper.GetString("smtp.emailClient.yandex.host"),
+		Port:     viper.GetString("smtp.emailClient.yandex.port_smtp_starttls"),
+		Username: viper.GetString("smtp.emailClient.yandex.username"),
+		Password: os.Getenv("SMTP_PASSWORD"),
+		From:     viper.GetString("smtp.from"),
+	})
+
+	if smtpCLient == nil {
+		logrus.Fatalln("failed to initialize SMTP configuration")
+		return nil
+	}
+
+	logrus.Print("SMTP configuration initialization completed")
+	return smtpCLient
 }

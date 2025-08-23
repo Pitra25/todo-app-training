@@ -1,4 +1,4 @@
-package service
+package methods
 
 import (
 	"fmt"
@@ -49,7 +49,7 @@ func (s *TodoItemsService) Delete(userId, itemId int) error {
 	return s.repo.Delete(userId, itemId)
 }
 
-func (s *TodoItemsService) Update(userId, listId int, input models.UpdadeItemInput) error {
+func (s *TodoItemsService) Update(userId, listId int, input models.UpdateItemInput) error {
 	logrus.Debug("todo_item/Update. user id:", userId, "list id:", listId)
 
 	if err := input.Validate(); err != nil {

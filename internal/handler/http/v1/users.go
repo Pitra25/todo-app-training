@@ -2,7 +2,7 @@ package v1
 
 import (
 	"net/http"
-	"todo-app/internal/errors"
+	errorsResponse "todo-app/internal/errors"
 	"todo-app/internal/repository/mysql/models"
 
 	"github.com/gin-gonic/gin"
@@ -20,7 +20,7 @@ import (
 // @Failure 500 {object} errorResponse
 // @Failure default {object} errorResponse
 // @Router /api/users/:id [get]
-func (h *Heandler) getUserById(c *gin.Context) {
+func (h *Handler) getUserById(c *gin.Context) {
 	userId, err := h.mw.GetUserId(c)
 	if err != nil {
 		errorsResponse.NewErrorResponse(c, http.StatusInternalServerError, err.Error())
@@ -47,7 +47,7 @@ func (h *Heandler) getUserById(c *gin.Context) {
 // @Failure 401 {object} errorResponse "Unauthorized"
 // @Failure 500 {object} errorResponse "Internal server error"
 // @Router /api/users/delete [delete]
-func (h *Heandler) deleteAccount(c *gin.Context) {
+func (h *Handler) deleteAccount(c *gin.Context) {
 	userId, err := h.mw.GetUserId(c)
 	if err != nil {
 		errorsResponse.NewErrorResponse(c, http.StatusInternalServerError, err.Error())
@@ -78,14 +78,14 @@ func (h *Heandler) deleteAccount(c *gin.Context) {
 // @Failure 401 {object} errorResponse "Unauthorized"
 // @Failure 500 {object} errorResponse "Internal server error"
 // @Router /api/users/{id} [put]
-func (h *Heandler) updateUser(c *gin.Context) {
+func (h *Handler) updateUser(c *gin.Context) {
 	userId, err := h.mw.GetUserId(c)
 	if err != nil {
 		errorsResponse.NewErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	var input *models.UpdateUserInpur
+	var input *models.UpdateUserInput
 	if err := c.BindJSON(&input); err != nil {
 		errorsResponse.NewErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
@@ -115,7 +115,7 @@ func (h *Heandler) updateUser(c *gin.Context) {
 // @Failure 500 {object} errorResponse
 // @Failure default {object} errorResponse
 // @Router /api/items [get]
-func (h *Heandler) getAllUsers(c *gin.Context) {
+func (h *Handler) getAllUsers(c *gin.Context) {
 	users, err := h.services.Users.GetUserAll()
 	if err != nil {
 		errorsResponse.NewErrorResponse(c, http.StatusInternalServerError, err.Error())

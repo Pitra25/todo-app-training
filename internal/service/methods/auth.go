@@ -1,4 +1,4 @@
-package service
+package methods
 
 import (
 	"crypto/sha1"
@@ -18,17 +18,19 @@ const (
 
 var (
 	// salt = os.Getenv("SALT")
-	salt = "asdjklu48u9r8qwe7244213fw"
-	singningKey_12 = os.Getenv("SINGNINGKEY_12")
-	// singningKey_12 = "qrkjk#4#35FSFJlja#4353KSFjH"
-	singningKey_35 = os.Getenv("SINGNINGKEY_35")
+	salt           = "asdjklu48u9r8qwe7244213fw"
+	signingKey_12 = os.Getenv("SIGNINGKEY_12")
+	// signingKey_12 = "qrkjk#4#35FSFJlja#4353KSFjH"
+	signingKey_35 = os.Getenv("SIGNINGKEY_35")
+	// tokenTTL_A_05  = time.Duration(viper.GetInt64("jwt.timeOfLife_1")) * time.Hour // 12 hours, ccess token
+	// tokenTTL_R_35  = time.Duration(viper.GetInt64("jwt.timeOfLife_2")) * time.Hour // 35 days, refresh token
 )
 
 type AuthService struct {
 	repo repository.Authorization
 }
 
-type tokenChaims struct {
+type tokenChains struct {
 	jwt.StandardClaims
 	UserId int `json:"user_id"`
 }
@@ -52,7 +54,7 @@ func (s *AuthService) GenerateToken(username, password string) (string, error) {
 		return "", err
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &tokenChaims{
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &tokenChains{
 		jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(tokenTTL_A_05).Unix(),
 			IssuedAt:  time.Now().Unix(),
@@ -60,16 +62,16 @@ func (s *AuthService) GenerateToken(username, password string) (string, error) {
 		user.Id,
 	})
 
-	return token.SignedString([]byte(singningKey_12))
+	return token.SignedString([]byte(signingKey_12))
 }
 
-func (s *AuthService) GenerateRefrachToken(username, password string) (string, error) {
+func (s *AuthService) GenerateRefreshToken(username, password string) (string, error) {
 	user, err := s.repo.GetUser(username, generatePasswordHash(password))
 	if err != nil {
 		return "", err
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &tokenChaims{
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &tokenChains{
 		jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(tokenTTL_R_35).Unix(),
 			IssuedAt:  time.Now().Unix(),
@@ -77,24 +79,24 @@ func (s *AuthService) GenerateRefrachToken(username, password string) (string, e
 		user.Id,
 	})
 
-	return token.SignedString([]byte(singningKey_35))
+	return token.SignedString([]byte(signingKey_35))
 }
 
 func (s *AuthService) ParseToken(accessToken string) (int, error) {
 
-	token, err := jwt.ParseWithClaims(accessToken, &tokenChaims{}, func(t *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(accessToken, &tokenChains{}, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("invalid singning method")
+			return nil, errors.New("invalid signing method")
 		}
-		return []byte(singningKey_12), nil
+		return []byte(signingKey_12), nil
 	})
 	if err != nil {
 		return 0, err
 	}
 
-	claims, ok := token.Claims.(*tokenChaims)
+	claims, ok := token.Claims.(*tokenChains)
 	if !ok {
-		return 0, errors.New("token chaims are not of type *tokenChaims")
+		return 0, errors.New("token chains are not of type *tokenChains")
 	}
 
 	return claims.UserId, nil

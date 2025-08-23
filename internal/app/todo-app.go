@@ -9,6 +9,7 @@ import (
 	v1 "todo-app/internal/handler/http/v1"
 	"todo-app/internal/repository"
 	"todo-app/internal/service"
+	"todo-app/pkg/email"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
@@ -26,8 +27,7 @@ import (
 // @name Authorization
 func TodoApp() {
 	logrus.SetFormatter(new(logrus.JSONFormatter))
-	logrus.SetLevel(logrus.DebugLevel)
-	
+	logrus.SetLevel(logrus.TraceLevel)
 
 	if err := initConfig(); err != nil {
 		logrus.Fatalf("error initializing config: %s", err.Error())
@@ -37,11 +37,13 @@ func TodoApp() {
 		logrus.Fatalf("error loading env variables: %s", err.Error())
 	}
 
-	db := bdInit()
+	db := bdMysqlInit()
 	rClient := redisInit()
-	
+	eClient := initConfigSMTP()
+	email := email.NewSmtpClient(eClient)
+
 	repos := repository.NewRepository(db, rClient)
-	service := service.NewService(repos)
+	service := service.NewService(repos, email, rClient)
 	handler := v1.NewHandler(service)
 
 	srv := startApp(handler)
@@ -49,7 +51,7 @@ func TodoApp() {
 
 }
 
-func startApp(h *v1.Heandler) *todo.Server {
+func startApp(h *v1.Handler) *todo.Server {
 	srv := new(todo.Server)
 	go func() {
 		if err := srv.Run(viper.GetString("server.port"), h.InitRoutes()); err != nil {
