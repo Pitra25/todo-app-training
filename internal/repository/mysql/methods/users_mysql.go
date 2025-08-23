@@ -46,7 +46,7 @@ func (r *UsersMySQL) GetUserAll() (*[]models.UserResponse, error) {
 	return &user, nil
 }
 
-func (r *UsersMySQL) UpdateUser(userId int, input *models.UpdateUserInpur) error {
+func (r *UsersMySQL) UpdateUser(userId int, input *models.UpdateUserInput) error {
 	query := fmt.Sprintf(
 		"UPDATE %s SET name = ?, username = ? WHERE id = ?",
 		models.UsersTable,

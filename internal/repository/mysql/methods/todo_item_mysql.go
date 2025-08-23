@@ -14,13 +14,13 @@ import (
 
 type TodoItemsMySql struct {
 	db  *sqlx.DB
-	rdb *storage.RediseCLientDB
+	rdb *storage.RedisCLientDB
 }
 
 func NewTodoItemsMySql(db *sqlx.DB, rdb *redis.Client) *TodoItemsMySql {
 	return &TodoItemsMySql{
 		db:  db,
-		rdb: &storage.RediseCLientDB{Db: rdb},
+		rdb: &storage.RedisCLientDB{Db: rdb},
 	}
 }
 
@@ -96,7 +96,7 @@ func (r *TodoItemsMySql) GetById(userId, itemId int) (models.TodoItems, error) {
 	var item models.TodoItems
 
 	// Check Redis cache first
-	storageRecords, err := r.rdb.Get(itemId, "list")
+	storageRecords, err := r.rdb.Get(itemId, storage.Item)
 	if err != nil {
 		logrus.Error("method: GetById item.", err.Error())
 	} else if storageRecords.Items.Title != "" && storageRecords != nil {
@@ -119,7 +119,7 @@ func (r *TodoItemsMySql) GetById(userId, itemId int) (models.TodoItems, error) {
 		ID:    itemId,
 		Items: item,
 	}); err != nil {
-		logrus.Error("err creatr record redis.", err.Error())
+		logrus.Error("err create record redis.", err.Error())
 		return item, nil
 	}
 
@@ -139,7 +139,7 @@ func (r *TodoItemsMySql) Delete(userId, itemId int) error {
 	return err
 }
 
-func (r *TodoItemsMySql) Update(userId, itemId int, input models.UpdadeItemInput) error {
+func (r *TodoItemsMySql) Update(userId, itemId int, input models.UpdateItemInput) error {
 	setValues := make([]string, 0)
 	args := make([]interface{}, 0)
 

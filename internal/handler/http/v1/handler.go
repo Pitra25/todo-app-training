@@ -11,16 +11,16 @@ import (
 	_ "todo-app/docs"
 )
 
-type Heandler struct {
+type Handler struct {
 	services *service.Service
 	mw       *http.MW
 }
 
-func NewHandler(service *service.Service) *Heandler {
-	return &Heandler{services: service}
+func NewHandler(service *service.Service) *Handler {
+	return &Handler{services: service}
 }
 
-func (h *Heandler) InitRoutes() *gin.Engine {
+func (h *Handler) InitRoutes() *gin.Engine {
 	router := gin.New()
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
@@ -62,6 +62,12 @@ func (h *Heandler) InitRoutes() *gin.Engine {
 			items.GET("/:id", h.getItemById)
 			items.PUT("/:id", h.updateItem)
 			items.DELETE("/:id", h.deleteItem)
+		}
+
+		email := api.Group("email")
+		{
+			email.POST("/send", h.postSendEmail)
+			email.POST("/confirmation", h.postConfirmationEmail)
 		}
 	}
 

@@ -12,44 +12,65 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type RediseCLientDB struct {
+type RedisCLientDB struct {
 	Db *redis.Client
 }
 
-func NewRedisDB(db *redis.Client) *RediseCLientDB {
-	return &RediseCLientDB{Db: db}
+func NewRedisDB(db *redis.Client) *RedisCLientDB {
+	return &RedisCLientDB{Db: db}
 }
 
 type Recording struct {
-	ID    int
-	List  models.TodoList
-	Items models.TodoItems
+	ID       int
+	List     models.TodoList
+	Items    models.TodoItems
+	CodeUser models.UsersCode
 }
 
-func (r *RediseCLientDB) Create(record *Recording) error {
+func (r *RedisCLientDB) Create(record *Recording) error {
 
 	if r == nil || r.Db == nil {
 		return fmt.Errorf("redis client is not initialized")
 	}
 
 	var (
-		key        string
+		key        keyType
 		recordJSON []byte
 		err        error
+		timeOfLife = 30 * time.Second
 	)
 
-	if record.List.Title != "" {
-		key = "list"
-		recordJSON, err = json.Marshal(record.List)
-		if err != nil {
-			return err
+	switch {
+	case record.List.Title != "":
+		{
+			key = List
+			recordJSON, err = json.Marshal(record.List)
+			if err != nil {
+				return err
+			}
 		}
-	} else if record.Items.Title != "" {
-		key = "item"
-		recordJSON, err = json.Marshal(record.Items)
-		if err != nil {
-			return err
+	case record.Items.Title != "":
+		{
+			key = Item
+			recordJSON, err = json.Marshal(record.Items)
+			if err != nil {
+				return err
+			}
 		}
+	case record.CodeUser.Code != "":
+		{
+			key = Code_user
+			timeOfLife = 10 * time.Minute
+			recordJSON, err = json.Marshal(record.CodeUser)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	keyRdb := keyFormation(record.ID, key)
+	if keyRdb != "" {
+		return fmt.Errorf("error create key recording redis")
 	}
 
 	_, err = r.Get(record.ID, key)
@@ -57,8 +78,13 @@ func (r *RediseCLientDB) Create(record *Recording) error {
 		return err
 	}
 
-	const timeOfLife = 30 * time.Second
-	if err := r.Db.Set(context.Background(), key+"_"+fmt.Sprint(record.ID), recordJSON, timeOfLife).Err(); err != nil {
+	err = r.Db.SetNX(
+		context.Background(),
+		keyRdb,
+		recordJSON,
+		timeOfLife,
+	).Err()
+	if err != nil {
 		return err
 	}
 
@@ -66,27 +92,24 @@ func (r *RediseCLientDB) Create(record *Recording) error {
 
 }
 
-func (r *RediseCLientDB) Get(key int, typeKey string) (*Recording, error) {
+func (r *RedisCLientDB) Get(key int, typeKey keyType) (*Recording, error) {
 
 	if r == nil || r.Db == nil {
 		return nil, fmt.Errorf("redis client is not initialized")
 	}
 
-	idStr := strconv.Itoa(key)
-	if typeKey == "list" || typeKey == "item" {
-		idStr = typeKey + "_" + idStr
-
-		logrus.Debug("Get redis key: ", idStr)
-
-	} else {
-		return nil, fmt.Errorf("error invalid key redis")
+	keyRdb := keyFormation(key, typeKey)
+	if keyRdb != "" {
+		return nil, fmt.Errorf("error create key recording redis")
 	}
 
 	ctx := context.Background()
-	val, err := r.Db.Get(ctx, idStr).Result()
+	val, err := r.Db.Get(ctx, keyRdb).Result()
 	if err == redis.Nil {
+		logrus.Debug("Error redis: ", err.Error())
 		return &Recording{}, nil
 	} else if err != nil {
+		logrus.Debug("Error get redis: ", err.Error())
 		return &Recording{}, err
 	}
 
@@ -96,6 +119,54 @@ func (r *RediseCLientDB) Get(key int, typeKey string) (*Recording, error) {
 		return &Recording{}, err
 	}
 
+	logrus.Debug("check redis: ", recording.CodeUser.Code)
+
 	return recording, nil
 
+}
+
+func (r *RedisCLientDB) DeleteRecord(id int, typeKey keyType) error {
+	keyRdb := keyFormation(id, typeKey)
+	if keyRdb != "" {
+		return fmt.Errorf("error create key recording redis")
+	}
+
+	ctx := context.Background()
+	_, err := r.Db.Del(ctx, keyRdb).Result()
+	return err
+}
+
+type keyType int
+
+const (
+	List keyType = iota
+	Item
+	Code_user
+)
+
+func keyFormation(id int, typeKey keyType) string {
+	idUserStr := strconv.Itoa(id)
+	key := ""
+
+	switch typeKey {
+	case List:
+		{
+			key = "list_" + idUserStr
+		}
+	case Item:
+		{
+			key = "itm_" + idUserStr
+		}
+	case Code_user:
+		{
+			key = "code_user_" + idUserStr
+		}
+	default:
+		{
+			logrus.Error("error invalid key redis")
+			return ""
+		}
+	}
+
+	return key
 }

@@ -13,13 +13,13 @@ import (
 
 type TodoListMySql struct {
 	db  *sqlx.DB
-	rdb *storage.RediseCLientDB
+	rdb *storage.RedisCLientDB
 }
 
 func NewTodoListMySql(db *sqlx.DB, rdb *redis.Client) *TodoListMySql {
 	return &TodoListMySql{
 		db:  db,
-		rdb: &storage.RediseCLientDB{Db: rdb},
+		rdb: &storage.RedisCLientDB{Db: rdb},
 	}
 }
 
@@ -73,7 +73,7 @@ func (r *TodoListMySql) GetById(userId, listId int) (models.TodoList, error) {
 	var lists models.TodoList
 
 	// Check Redis cache first
-	storageRecords, err := r.rdb.Get(listId, "list")
+	storageRecords, err := r.rdb.Get(listId, storage.List)
 	if err != nil {
 		logrus.Error("method: GetById list.", err.Error())
 	} else if storageRecords.List.Title != "" && storageRecords != nil {
@@ -99,7 +99,7 @@ func (r *TodoListMySql) GetById(userId, listId int) (models.TodoList, error) {
 		ID:   lists.Id,
 		List: lists,
 	}); err != nil {
-		logrus.Error("err creatr record redis.", err.Error())
+		logrus.Error("err create record redis.", err.Error())
 		return lists, nil
 	}
 
@@ -118,7 +118,7 @@ func (r *TodoListMySql) Delete(userId, listId int) error {
 	return err
 }
 
-func (r *TodoListMySql) Update(userId, listId int, input models.UpdadeListInput) error {
+func (r *TodoListMySql) Update(userId, listId int, input models.UpdateListInput) error {
 	setValues := make([]string, 0)
 	args := make([]interface{}, 0)
 

@@ -20,7 +20,7 @@ import (
 // @Failure 500 {object} errorResponse
 // @Failure default {object} errorResponse
 // @Router /auth/sign-up [post]
-func (h *Heandler) singUp(c *gin.Context) {
+func (h *Handler) singUp(c *gin.Context) {
 	var input models.User
 
 	if err := c.BindJSON(&input); err != nil {
@@ -55,7 +55,7 @@ type signInInput struct {
 // @Failure 500 {object} errorResponse
 // @Failure default {object} errorResponse
 // @Router /auth/sign-in [post]
-func (h *Heandler) singIp(c *gin.Context) {
+func (h *Handler) singIp(c *gin.Context) {
 	var input signInInput
 
 	if err := c.BindJSON(&input); err != nil {

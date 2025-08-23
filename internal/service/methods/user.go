@@ -1,4 +1,4 @@
-package service
+package methods
 
 import (
 	"todo-app/internal/repository"
@@ -21,7 +21,7 @@ func (s *UserService) GetUserAll() (*[]models.UserResponse, error) {
 	return s.repo.GetUserAll()
 }
 
-func (s *UserService) UpdateUser(userId int, input *models.UpdateUserInpur) error {
+func (s *UserService) UpdateUser(userId int, input *models.UpdateUserInput) error {
 	if err := input.Validate(); err != nil {
 		return err
 	}

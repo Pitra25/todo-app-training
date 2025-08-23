@@ -8,6 +8,7 @@ const ( // table DB
 	UsersListsTable = "users_lists"
 	TodoItemsTable  = "todo_items"
 	ListsItemsTable = "lists_items"
+	UserCodeEmailTable = "users_code"
 )
 
 type TodoList struct {
@@ -35,25 +36,25 @@ type ListItems struct {
 	ItemId int
 }
 
-type UpdadeListInput struct {
+type UpdateListInput struct {
 	Title       *string `json:"title"`
 	Description *string `json:"description"`
 }
 
-func (i UpdadeListInput) Validate() error {
+func (i UpdateListInput) Validate() error {
 	if i.Title == nil && i.Description == nil {
 		return errors.New("update structure has no values")
 	}
 	return nil
 }
 
-type UpdadeItemInput struct {
+type UpdateItemInput struct {
 	Title       *string `json:"title"`
 	Description *string `json:"description"`
 	Done        *bool   `json:"done" db:"done"`
 }
 
-func (i UpdadeItemInput) Validate() error {
+func (i UpdateItemInput) Validate() error {
 	if i.Title == nil && i.Description == nil && i.Done == nil {
 		return errors.New("update structure has no values")
 	}

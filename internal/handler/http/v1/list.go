@@ -22,7 +22,7 @@ import (
 // @Failure 500 {object} errorResponse
 // @Failure default {object} errorResponse
 // @Router /api/lists [post]
-func (h *Heandler) createList(c *gin.Context) {
+func (h *Handler) createList(c *gin.Context) {
 	userId, err := h.mw.GetUserId(c)
 	if err != nil {
 		return
@@ -57,7 +57,7 @@ func (h *Heandler) createList(c *gin.Context) {
 // @Failure 500 {object} errorResponse
 // @Failure default {object} errorResponse
 // @Router /api/lists [get]
-func (h *Heandler) getAllLists(c *gin.Context) {
+func (h *Handler) getAllLists(c *gin.Context) {
 	userId, err := h.mw.GetUserId(c)
 	if err != nil {
 		return
@@ -84,7 +84,7 @@ func (h *Heandler) getAllLists(c *gin.Context) {
 // @Failure 500 {object} errorResponse
 // @Failure default {object} errorResponse
 // @Router /api/lists/:id [get]
-func (h *Heandler) getListsById(c *gin.Context) {
+func (h *Handler) getListsById(c *gin.Context) {
 	userId, err := h.mw.GetUserId(c)
 	if err != nil {
 		return
@@ -113,12 +113,12 @@ func (h *Heandler) getListsById(c *gin.Context) {
 // @Accept  json
 // @Produce  json
 // @Param id path int true "List ID"
-// @Param input body models.UpdadeListInput true "List update input"
+// @Param input body models.UpdateListInput true "List update input"
 // @Success 200 {object} errorsResponse.statusResponse
 // @Failure 400 {object} errorResponse "Invalid ID or input"
 // @Failure 500 {object} errorResponse "Internal server error"
 // @Router /api/lists/{id} [put]
-func (h *Heandler) updateList(c *gin.Context) {
+func (h *Handler) updateList(c *gin.Context) {
 	userId, err := h.mw.GetUserId(c)
 	if err != nil {
 		return
@@ -130,7 +130,7 @@ func (h *Heandler) updateList(c *gin.Context) {
 		return
 	}
 
-	var input models.UpdadeListInput
+	var input models.UpdateListInput
 	if err := c.BindJSON(&input); err != nil {
 		errorsResponse.NewErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
@@ -156,7 +156,7 @@ func (h *Heandler) updateList(c *gin.Context) {
 // @Failure 400 {object} errorResponse "Invalid ID"
 // @Failure 500 {object} errorResponse "Internal server error"
 // @Router /api/lists/{id} [delete]
-func (h *Heandler) deleteList(c *gin.Context) {
+func (h *Handler) deleteList(c *gin.Context) {
 	userId, err := h.mw.GetUserId(c)
 	if err != nil {
 		return

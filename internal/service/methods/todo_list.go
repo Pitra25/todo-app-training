@@ -1,4 +1,4 @@
-package service
+package methods
 
 import (
 	"todo-app/internal/repository"
@@ -29,7 +29,7 @@ func (s *TodoListService) Delete(userId, listId int) error {
 	return s.repo.Delete(userId, listId)
 }
 
-func (s *TodoListService) Update(userId, listId int, input models.UpdadeListInput) error {
+func (s *TodoListService) Update(userId, listId int, input models.UpdateListInput) error {
 	if err := input.Validate(); err != nil {
 		return err
 	}

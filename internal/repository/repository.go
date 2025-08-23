@@ -17,7 +17,7 @@ type Authorization interface {
 type Users interface {
 	GetUserById(userId int) (*models.UserResponse, error)
 	GetUserAll() (*[]models.UserResponse, error)
-	UpdateUser(userId int, input *models.UpdateUserInpur) error
+	UpdateUser(userId int, input *models.UpdateUserInput) error
 	DeleteUser(userId int) error
 }
 
@@ -26,7 +26,7 @@ type TodoList interface {
 	GetAll(userId int) ([]models.TodoList, error)
 	GetById(userId, listId int) (models.TodoList, error)
 	Delete(userId, listId int) error
-	Update(userId, listId int, input models.UpdadeListInput) error
+	Update(userId, listId int, input models.UpdateListInput) error
 }
 
 type TodoItems interface {
@@ -35,11 +35,18 @@ type TodoItems interface {
 	GetAllItem() ([]models.TodoItems, error)
 	GetById(userId, listId int) (models.TodoItems, error)
 	Delete(userId, itemId int) error
-	Update(userId, listId int, input models.UpdadeItemInput) error
+	Update(userId, listId int, input models.UpdateItemInput) error
 }
 
 type MySql interface {
 	NewMySqlDB(cfg *mysql.ConfigMySql) (*sqlx.DB, error)
+}
+
+type Emails interface {
+	SaveCodeUser(code string, userId int) error
+	GetCodeUser(userId int) (methods.ResponseCode, error)
+	UpdateStatusUser(userId int) error
+	DeleteRecord(id, userId int) error
 }
 
 type Repository struct {
@@ -47,6 +54,7 @@ type Repository struct {
 	TodoList
 	TodoItems
 	Users
+	Emails
 }
 
 func NewRepository(db *sqlx.DB, rdb *redis.Client) *Repository {
@@ -55,5 +63,6 @@ func NewRepository(db *sqlx.DB, rdb *redis.Client) *Repository {
 		TodoList:      methods.NewTodoListMySql(db, rdb),
 		TodoItems:     methods.NewTodoItemsMySql(db, rdb),
 		Users:         methods.NewUsersMySQL(db),
+		Emails:        methods.NewEmailMySql(db, rdb),
 	}
 }

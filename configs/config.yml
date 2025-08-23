@@ -6,12 +6,20 @@ server:
 
 # Database mysql configuration
 db:
-  host: "localhost"
-  port: "3306"
-  username: "root"
-  dbname: "todo_db"
-  sslmode: "disable"
-  parsetime: "true"
+  mysql:
+    host: "localhost"
+    port: "3306"
+    username: "root"
+    dbname: "todo_db"
+    sslmode: "disable"
+    parsetime: "true"
+  postgres:
+    host: "localhost"
+    port: "3306"
+    username: "root"
+    dbname: "todo_db"
+    sslmode: "disable"
+    parsetime: "true"
 
 # Redis configuration
 redis:
@@ -22,3 +30,26 @@ redis:
   maxretries: 5
   dialtimeout: 10s
   timeout: 5s
+
+# Email configuration
+smtp:
+  from: "v.akulowitch@yandex.ru"
+  server:
+    addr: ""
+    domain: ""
+    write_timeout: "5s"
+    read_timeout: "5s"
+    max_message_bytes: 1048576 # 1 MB || 1024 * 1024
+    max_recipients: 50
+    allow_insecure_auth: false
+  emailClient:
+    yandex:
+      username: "v.akulowitch@yandex.ru"
+      host: "smtp.yandex.com"
+      port_smtp: "465"
+      port_smtp_starttls: "587"
+
+# Jwt configuration
+jwt:
+  timeOfLife_1: "12"
+  timeOfLife_2: "168"
